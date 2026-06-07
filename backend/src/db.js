@@ -65,6 +65,7 @@ async function initDb() {
   await wrappedDb.exec("CREATE TABLE IF NOT EXISTS score_items (id TEXT PRIMARY KEY, inquiry_id TEXT NOT NULL, name TEXT NOT NULL, weight REAL NOT NULL, description TEXT)");
   await wrappedDb.exec("CREATE TABLE IF NOT EXISTS scores (id TEXT PRIMARY KEY, quote_id TEXT NOT NULL, score_item_id TEXT NOT NULL, score REAL NOT NULL, scorer_id TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(quote_id, score_item_id, scorer_id))");
   await wrappedDb.exec("CREATE TABLE IF NOT EXISTS award_results (id TEXT PRIMARY KEY, inquiry_id TEXT NOT NULL, winning_quote_id TEXT NOT NULL, final_price REAL NOT NULL, remarks TEXT, status TEXT NOT NULL DEFAULT 'pending', created_by TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, approved_by TEXT, approved_at DATETIME)");
+  await wrappedDb.exec("CREATE TABLE IF NOT EXISTS supplementary_applications (id TEXT PRIMARY KEY, inquiry_id TEXT NOT NULL, applicant_id TEXT NOT NULL, reason TEXT NOT NULL, supplement_data TEXT, status TEXT NOT NULL DEFAULT 'pending', approver_id TEXT, approval_remarks TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, approved_at DATETIME)");
 }
 
 module.exports = { db: wrappedDb, initDb };

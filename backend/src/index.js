@@ -12,6 +12,7 @@ app.use('/api/inquiries', require('./routes/inquiries'));
 app.use('/api/quotes', require('./routes/quotes'));
 app.use('/api/scores', require('./routes/scores'));
 app.use('/api/awards', require('./routes/awards'));
+app.use('/api/supplementary', require('./routes/supplementary'));
 app.get('/api/health', function(req, res) {
   res.json({ status: 'ok', message: 'OK' });
 });
