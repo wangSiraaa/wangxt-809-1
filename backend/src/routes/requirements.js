@@ -5,7 +5,7 @@ const { authMiddleware, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', authMiddleware, function(req, res) {
+router.get('/', authMiddleware, async function(req, res) {
   const requirements = db.prepare(`
     SELECT pr.*, u.name as requester_name
     FROM purchase_requirements pr
@@ -15,7 +15,7 @@ router.get('/', authMiddleware, function(req, res) {
   res.json({ requirements });
 });
 
-router.get('/:id', authMiddleware, function(req, res) {
+router.get('/:id', authMiddleware, async function(req, res) {
   const requirement = db.prepare(`
     SELECT pr.*, u.name as requester_name
     FROM purchase_requirements pr
@@ -28,31 +28,31 @@ router.get('/:id', authMiddleware, function(req, res) {
   res.json({ requirement });
 });
 
-router.post('/', authMiddleware, requireRole('requester', 'buyer'), function(req, res) {
+router.post('/', authMiddleware, requireRole('requester', 'buyer'), async function(req, res) {
   const { title, description, department, budget } = req.body;
   if (!title) {
     return res.status(400).json({ error: '标题不能为空' });
   }
   const id = uuidv4();
   const requesterId = req.user.id;
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO purchase_requirements (id, title, description, department, requester_id, budget)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(id, title, description || null, department || null, requesterId, budget || null);
-  const requirement = db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(id);
+  const requirement = await db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(id);
   res.status(201).json({ requirement });
 });
 
-router.put('/:id', authMiddleware, function(req, res) {
+router.put('/:id', authMiddleware, async function(req, res) {
   const { title, description, department, budget, status } = req.body;
-  const requirement = db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(req.params.id);
+  const requirement = await db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(req.params.id);
   if (!requirement) {
     return res.status(404).json({ error: '采购需求不存在' });
   }
   if (req.user.role !== 'buyer' && requirement.requester_id !== req.user.id) {
     return res.status(403).json({ error: '无权限修改此需求' });
   }
-  db.prepare(`
+  await db.prepare(`
     UPDATE purchase_requirements
     SET title = ?, description = ?, department = ?, budget = ?, status = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
@@ -64,19 +64,19 @@ router.put('/:id', authMiddleware, function(req, res) {
     status || requirement.status,
     req.params.id
   );
-  const updated = db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(req.params.id);
+  const updated = await db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(req.params.id);
   res.json({ requirement: updated });
 });
 
-router.delete('/:id', authMiddleware, requireRole('buyer', 'requester'), function(req, res) {
-  const requirement = db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(req.params.id);
+router.delete('/:id', authMiddleware, requireRole('buyer', 'requester'), async function(req, res) {
+  const requirement = await db.prepare('SELECT * FROM purchase_requirements WHERE id = ?').get(req.params.id);
   if (!requirement) {
     return res.status(404).json({ error: '采购需求不存在' });
   }
   if (req.user.role !== 'buyer' && requirement.requester_id !== req.user.id) {
     return res.status(403).json({ error: '无权限删除此需求' });
   }
-  db.prepare('DELETE FROM purchase_requirements WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM purchase_requirements WHERE id = ?').run(req.params.id);
   res.json({ message: '删除成功' });
 });
 

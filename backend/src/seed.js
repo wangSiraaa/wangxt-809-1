@@ -2,8 +2,8 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { db, initDb } = require('./db');
 
-function seed() {
-  initDb();
+async function seed() {
+  await initDb();
   console.log('开始创建种子数据...');
 
   const salt = bcrypt.genSaltSync(10);
@@ -19,7 +19,7 @@ function seed() {
 
   const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, username, password, name, role) VALUES (?, ?, ?, ?, ?)');
   for (const user of users) {
-    insertUser.run(user.id, user.username, user.password, user.name, user.role);
+    await insertUser.run(user.id, user.username, user.password, user.name, user.role);
     console.log(`创建用户: ${user.username} (${user.name}) - 角色: ${user.role}`);
   }
 
@@ -30,43 +30,43 @@ function seed() {
   const supplier3Id = users[4].id;
 
   const requirementId = uuidv4();
-  db.prepare(`
+  await db.prepare(`
     INSERT OR IGNORE INTO purchase_requirements (id, title, description, department, requester_id, status, budget)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(requirementId, '办公电脑采购', '需要采购10台办公用笔记本电脑', '信息技术部', requesterId, 'approved', 50000);
   console.log('创建采购需求: 办公电脑采购');
 
   const inquiryId = uuidv4();
-  db.prepare(`
+  await db.prepare(`
     INSERT OR IGNORE INTO inquiries (id, requirement_id, title, description, buyer_id, status, deadline)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(inquiryId, requirementId, '办公电脑采购询价', '采购10台笔记本电脑，配置要求：i5处理器，16G内存，512G固态硬盘', buyerId, 'published', '2024-12-31 23:59:59');
   console.log('创建询价单: 办公电脑采购询价');
 
   const insertInquirySupplier = db.prepare('INSERT OR IGNORE INTO inquiry_suppliers (id, inquiry_id, supplier_id) VALUES (?, ?, ?)');
-  insertInquirySupplier.run(uuidv4(), inquiryId, supplier1Id);
-  insertInquirySupplier.run(uuidv4(), inquiryId, supplier2Id);
-  insertInquirySupplier.run(uuidv4(), inquiryId, supplier3Id);
+  await insertInquirySupplier.run(uuidv4(), inquiryId, supplier1Id);
+  await insertInquirySupplier.run(uuidv4(), inquiryId, supplier2Id);
+  await insertInquirySupplier.run(uuidv4(), inquiryId, supplier3Id);
   console.log('邀请3家供应商参与询价');
 
   const scoreItem1Id = uuidv4();
   const scoreItem2Id = uuidv4();
   const scoreItem3Id = uuidv4();
   const insertScoreItem = db.prepare('INSERT OR IGNORE INTO score_items (id, inquiry_id, name, weight, description) VALUES (?, ?, ?, ?, ?)');
-  insertScoreItem.run(scoreItem1Id, inquiryId, '价格', 0.5, '报价价格评分，越低得分越高');
-  insertScoreItem.run(scoreItem2Id, inquiryId, '交货期', 0.3, '交货时间评分，越短得分越高');
-  insertScoreItem.run(scoreItem3Id, inquiryId, '售后服务', 0.2, '售后服务质量评分');
+  await insertScoreItem.run(scoreItem1Id, inquiryId, '价格', 0.5, '报价价格评分，越低得分越高');
+  await insertScoreItem.run(scoreItem2Id, inquiryId, '交货期', 0.3, '交货时间评分，越短得分越高');
+  await insertScoreItem.run(scoreItem3Id, inquiryId, '售后服务', 0.2, '售后服务质量评分');
   console.log('创建3个评分项');
 
   const quote1Id = uuidv4();
-  db.prepare(`
+  await db.prepare(`
     INSERT OR IGNORE INTO quotes (id, inquiry_id, supplier_id, total_price, delivery_days, remarks, status)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(quote1Id, inquiryId, supplier1Id, 45000, 7, '全新正品，原厂保修3年', 'valid');
   console.log('创建供应商A报价: 45000元，7天交货');
 
   const quote2Id = uuidv4();
-  db.prepare(`
+  await db.prepare(`
     INSERT OR IGNORE INTO quotes (id, inquiry_id, supplier_id, total_price, delivery_days, remarks, status)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(quote2Id, inquiryId, supplier2Id, 48000, 5, '含上门安装调试，保修2年', 'valid');
@@ -90,4 +90,7 @@ function seed() {
   console.log('  - 可以用 supplier03 登录提交第3家报价后再进行定标测试');
 }
 
-seed();
+seed().catch(err => {
+  console.error('种子数据创建失败:', err);
+  process.exit(1);
+});

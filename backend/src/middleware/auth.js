@@ -3,7 +3,7 @@ const { db } = require('../db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'procurement-sourcing-jwt-secret';
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
   const token = authHeader ? authHeader.split(' ')[1] : null;
   if (!token) {
@@ -11,7 +11,7 @@ function authMiddleware(req, res, next) {
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT id, username, name, role FROM users WHERE id = ?').get(decoded.userId);
+    const user = await db.prepare('SELECT id, username, name, role FROM users WHERE id = ?').get(decoded.userId);
     if (!user) {
       return res.status(401).json({ error: '用户不存在' });
     }

@@ -5,8 +5,8 @@ const { authMiddleware, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', authMiddleware, function(req, res) {
-  const inquiries = db.prepare(`
+router.get('/', authMiddleware, async function(req, res) {
+  const inquiries = await db.prepare(`
     SELECT i.*, pr.title as requirement_title, u.name as buyer_name
     FROM inquiries i
     LEFT JOIN purchase_requirements pr ON i.requirement_id = pr.id
@@ -16,8 +16,8 @@ router.get('/', authMiddleware, function(req, res) {
   res.json({ inquiries });
 });
 
-router.get('/:id', authMiddleware, function(req, res) {
-  const inquiry = db.prepare(`
+router.get('/:id', authMiddleware, async function(req, res) {
+  const inquiry = await db.prepare(`
     SELECT i.*, pr.title as requirement_title, u.name as buyer_name
     FROM inquiries i
     LEFT JOIN purchase_requirements pr ON i.requirement_id = pr.id
@@ -27,40 +27,40 @@ router.get('/:id', authMiddleware, function(req, res) {
   if (!inquiry) {
     return res.status(404).json({ error: '询价单不存在' });
   }
-  const suppliers = db.prepare(`
+  const suppliers = await db.prepare(`
     SELECT s.*, isu.invited_at
     FROM inquiry_suppliers isu
     LEFT JOIN users s ON isu.supplier_id = s.id
     WHERE isu.inquiry_id = ?
   `).all(req.params.id);
-  const scoreItems = db.prepare('SELECT * FROM score_items WHERE inquiry_id = ?').all(req.params.id);
+  const scoreItems = await db.prepare('SELECT * FROM score_items WHERE inquiry_id = ?').all(req.params.id);
   res.json({ inquiry, suppliers, scoreItems });
 });
 
-router.post('/', authMiddleware, requireRole('buyer'), function(req, res) {
+router.post('/', authMiddleware, requireRole('buyer'), async function(req, res) {
   const { requirement_id, title, description, deadline, score_items } = req.body;
   if (!requirement_id || !title) {
     return res.status(400).json({ error: '需求ID和标题不能为空' });
   }
   const id = uuidv4();
   const buyerId = req.user.id;
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO inquiries (id, requirement_id, title, description, buyer_id, deadline)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(id, requirement_id, title, description || null, buyerId, deadline || null);
   if (score_items && Array.isArray(score_items)) {
     const insertItem = db.prepare('INSERT INTO score_items (id, inquiry_id, name, weight, description) VALUES (?, ?, ?, ?, ?)');
     for (const item of score_items) {
-      insertItem.run(uuidv4(), id, item.name, item.weight, item.description || null);
+      await insertItem.run(uuidv4(), id, item.name, item.weight, item.description || null);
     }
   }
-  const inquiry = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(id);
+  const inquiry = await db.prepare('SELECT * FROM inquiries WHERE id = ?').get(id);
   res.status(201).json({ inquiry });
 });
 
-router.post('/:id/invite', authMiddleware, requireRole('buyer'), function(req, res) {
+router.post('/:id/invite', authMiddleware, requireRole('buyer'), async function(req, res) {
   const { supplier_ids } = req.body;
-  const inquiry = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
+  const inquiry = await db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
   if (!inquiry) {
     return res.status(404).json({ error: '询价单不存在' });
   }
@@ -69,18 +69,18 @@ router.post('/:id/invite', authMiddleware, requireRole('buyer'), function(req, r
   }
   const insertSupplier = db.prepare('INSERT OR IGNORE INTO inquiry_suppliers (id, inquiry_id, supplier_id) VALUES (?, ?, ?)');
   for (const supplierId of supplier_ids) {
-    insertSupplier.run(uuidv4(), req.params.id, supplierId);
+    await insertSupplier.run(uuidv4(), req.params.id, supplierId);
   }
   res.json({ message: '邀请成功' });
 });
 
-router.put('/:id', authMiddleware, requireRole('buyer'), function(req, res) {
+router.put('/:id', authMiddleware, requireRole('buyer'), async function(req, res) {
   const { title, description, deadline, status, score_items } = req.body;
-  const inquiry = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
+  const inquiry = await db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
   if (!inquiry) {
     return res.status(404).json({ error: '询价单不存在' });
   }
-  db.prepare(`
+  await db.prepare(`
     UPDATE inquiries
     SET title = ?, description = ?, deadline = ?, status = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
@@ -92,22 +92,22 @@ router.put('/:id', authMiddleware, requireRole('buyer'), function(req, res) {
     req.params.id
   );
   if (score_items && Array.isArray(score_items)) {
-    db.prepare('DELETE FROM score_items WHERE inquiry_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM score_items WHERE inquiry_id = ?').run(req.params.id);
     const insertItem = db.prepare('INSERT INTO score_items (id, inquiry_id, name, weight, description) VALUES (?, ?, ?, ?, ?)');
     for (const item of score_items) {
-      insertItem.run(uuidv4(), req.params.id, item.name, item.weight, item.description || null);
+      await insertItem.run(uuidv4(), req.params.id, item.name, item.weight, item.description || null);
     }
   }
-  const updated = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
+  const updated = await db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
   res.json({ inquiry: updated });
 });
 
-router.delete('/:id', authMiddleware, requireRole('buyer'), function(req, res) {
-  const inquiry = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
+router.delete('/:id', authMiddleware, requireRole('buyer'), async function(req, res) {
+  const inquiry = await db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
   if (!inquiry) {
     return res.status(404).json({ error: '询价单不存在' });
   }
-  db.prepare('DELETE FROM inquiries WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM inquiries WHERE id = ?').run(req.params.id);
   res.json({ message: '删除成功' });
 });
 
