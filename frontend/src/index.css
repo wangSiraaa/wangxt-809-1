@@ -1,0 +1,45 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  background-color: #1890ff;
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 20px;
+}
+
+.header .user-info {
+  display: flex;
+  alimport React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App.jsx': import ReactDOM from 'reax;import { BrowserRouter } from 'react-ror;import App from './App.jsx';
+import './index.css5,import './index.css';
+
+Reacco
+ReactDOM.createRoot fl  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    -h    <BrowserRouter>og      <App />
+    ou    </Browse p  </React.StrictModde);
